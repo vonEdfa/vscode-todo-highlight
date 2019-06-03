@@ -210,6 +210,11 @@
                     "type": "number",
                     "default": 5120,
                     "description": "Max files for searching"
+                },
+                "todohighlight.convertToBadge": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Convert TODOs and FIXMEs to a badge-like format"
                 }
             }
         }

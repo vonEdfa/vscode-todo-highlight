@@ -13,7 +13,7 @@ function activate(context) {
 
     var timeout = null;
     var activeEditor = window.activeTextEditor;
-    var isCaseSensitive, assembledData, decorationTypes, pattern, styleForRegExp, keywordsPattern;
+    var isCaseSensitive, assembledData, decorationTypes, pattern, styleForRegExp, keywordsPattern, convertToBadge;
     var workspaceState = context.workspaceState;
 
     var settings = workspace.getConfiguration('todohighlight');
@@ -89,6 +89,27 @@ function activate(context) {
             var startPos = activeEditor.document.positionAt(match.index);
             var endPos = activeEditor.document.positionAt(match.index + match[0].length);
 
+            if (convertToBadge) {
+                var startPos = activeEditor.document.positionAt(match.index - 1);
+                var before = {
+                    range: new vscode.Range(startPos, startPos),
+                }
+
+                if (matches[`${matchedValue}-before`]) {
+                    matches[`${matchedValue}-before`].push(before);
+                } else {
+                    matches[`${matchedValue}-before`] = [before];
+                }
+
+                if (!decorationTypes[`${matchedValue}-before`]) {
+                    decorationTypes[`${matchedValue}-before`] = window.createTextEditorDecorationType(Object.assign({}, {
+                        before: {
+                            contentText: ' '
+                        }
+                    }));
+                }
+            }
+
             var decoration = {
                 range: new vscode.Range(startPos, endPos)
             };
@@ -123,6 +144,7 @@ function activate(context) {
         var customDefaultStyle = settings.get('defaultStyle');
         keywordsPattern = settings.get('keywordsPattern');
         isCaseSensitive = settings.get('isCaseSensitive', true);
+        convertToBadge = settings.get('convertToBadge', false);
 
         if (!window.statusBarItem) {
             window.statusBarItem = util.createStatusBarItem();
@@ -132,11 +154,16 @@ function activate(context) {
         }
 
         decorationTypes = {};
+        var badgeStyle = convertToBadge ? {
+            after: {
+                contentText: ' '
+            }
+        } : {};
 
         if (keywordsPattern.trim()) {
             styleForRegExp = Object.assign({}, util.DEFAULT_STYLE, customDefaultStyle, {
                 overviewRulerLane: vscode.OverviewRulerLane.Right
-            });
+            }, badgeStyle);
 
             pattern = keywordsPattern;
         } else {
@@ -148,7 +175,7 @@ function activate(context) {
 
                 var mergedStyle = Object.assign({}, {
                     overviewRulerLane: vscode.OverviewRulerLane.Right
-                }, assembledData[v]);
+                }, assembledData[v], badgeStyle);
 
                 if (!mergedStyle.overviewRulerColor) {
                     // use backgroundColor as the default overviewRulerColor if not specified by the user setting
